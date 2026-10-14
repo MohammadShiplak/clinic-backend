@@ -21,7 +21,7 @@ public partial class ClinicDbContext : DbContext
     public DbSet<Person> People => Set<Person>();
     public DbSet<Prescription> Prescriptions => Set<Prescription>();
 
-  
+    public DbSet<DoctorQualification> DoctorQualifications => Set<DoctorQualification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

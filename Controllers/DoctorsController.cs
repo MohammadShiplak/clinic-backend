@@ -25,8 +25,15 @@ namespace ClinicManagementSystem.API.Controllers
 
         [HttpGet("specializations")]
         public async Task<ActionResult<IReadOnlyList<string>>>GetSpecialization(CancellationToken ct)=>
-            Ok(await doctorService.GetSpecializationAsync(ct)); 
+            Ok(await doctorService.GetSpecializationAsync(ct));
 
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<DoctorDetailsDto>>GetDoctorById(int id, CancellationToken ct)
+        {
+            var doctor =await doctorService.GetDoctorByIdAsync(id, ct);
+
+            return doctor is null ? NotFound(): Ok(doctor); 
+        }
 
 
 

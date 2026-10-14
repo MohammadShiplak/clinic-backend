@@ -13,10 +13,15 @@ public partial class Doctor
 
     public DateOnly? CareerStarDate { get; set; }
 
+    public string? Biography { get; set; }  
+
+    public string? ClinicRoom { get; set; } 
+
+
     public string? ProfileImageUrl { get; set; }    
 
 
     public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
-
+    public virtual ICollection<DoctorQualification>Qualifications { get; set; } 
     public virtual Person Person { get; set; } = null!;
 }

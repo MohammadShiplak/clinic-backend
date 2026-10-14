@@ -6,5 +6,6 @@ namespace ClinicManagementSystem.API.Interfaces
     {
         Task<IReadOnlyList<DoctorListItemDto>> GetDoctorsAsync(string? search, string? specialization, CancellationToken ct);
         Task<IReadOnlyList<string>> GetSpecializationAsync(CancellationToken ct);
+        Task<DoctorDetailsDto?> GetDoctorByIdAsync(int id, CancellationToken ct);
     }
 }

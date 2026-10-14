@@ -75,8 +75,16 @@ namespace ClinicManagementSystem.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DoctorId"));
 
+                    b.Property<string>("Biography")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
                     b.Property<DateOnly?>("CareerStarDate")
                         .HasColumnType("date");
+
+                    b.Property<string>("ClinicRoom")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("PersonId")
                         .HasColumnType("int");
@@ -97,6 +105,36 @@ namespace ClinicManagementSystem.API.Migrations
                     b.HasIndex("Specialization");
 
                     b.ToTable("Doctors");
+                });
+
+            modelBuilder.Entity("ClinicManagementSystem.API.Entities.DoctorQualification", b =>
+                {
+                    b.Property<int>("DoctorQualificationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DoctorQualificationId"));
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Institution")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int?>("YearAwarded")
+                        .HasColumnType("int");
+
+                    b.HasKey("DoctorQualificationId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.ToTable("DoctorQualifications");
                 });
 
             modelBuilder.Entity("ClinicManagementSystem.API.Entities.MedicalRecord", b =>
@@ -304,6 +342,17 @@ namespace ClinicManagementSystem.API.Migrations
                     b.Navigation("Person");
                 });
 
+            modelBuilder.Entity("ClinicManagementSystem.API.Entities.DoctorQualification", b =>
+                {
+                    b.HasOne("ClinicManagementSystem.API.Entities.Doctor", "Doctor")
+                        .WithMany("Qualifications")
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+                });
+
             modelBuilder.Entity("ClinicManagementSystem.API.Entities.Patient", b =>
                 {
                     b.HasOne("ClinicManagementSystem.API.Entities.Person", "Person")
@@ -329,6 +378,8 @@ namespace ClinicManagementSystem.API.Migrations
             modelBuilder.Entity("ClinicManagementSystem.API.Entities.Doctor", b =>
                 {
                     b.Navigation("Appointments");
+
+                    b.Navigation("Qualifications");
                 });
 
             modelBuilder.Entity("ClinicManagementSystem.API.Entities.MedicalRecord", b =>

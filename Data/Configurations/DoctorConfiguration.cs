@@ -10,6 +10,10 @@ namespace ClinicManagementSystem.API.Data.Configurations
         {
             builder.Property(d => d.Specialization).HasMaxLength(100);
 
+            builder.Property(d => d.Biography).HasMaxLength(2000);
+            builder.Property(d => d.ClinicRoom).HasMaxLength(50);
+
+
             builder.Property(d => d.ProfileImageUrl).HasMaxLength(100);
 
 

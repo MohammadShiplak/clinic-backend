@@ -62,8 +62,46 @@ namespace ClinicManagementSystem.API.Services
             .Distinct()
             .OrderBy(s=>s)
             .ToListAsync(ct);
-        
-           
-        
+
+        public async Task<DoctorDetailsDto?> GetDoctorByIdAsync(int id, CancellationToken ct)
+        {
+            var row = await context.Doctors
+                .AsNoTracking()
+                .Where(d => d.DoctorId == id)
+                .Select(d => new
+                {
+
+                    d.DoctorId,
+                    d.Person.Name,
+                    d.Specialization,
+                    d.ProfileImageUrl,
+                    d.CareerStarDate,
+                    d.Biography,
+                    d.ClinicRoom,
+                    Quilifications = d.Qualifications
+                   .OrderByDescending(q => q.YearAwarded)
+                   .Select(q => new DoctorQualificationDto(q.Title, q.Institution, q.YearAwarded))
+                   .ToList()
+
+                }).FirstOrDefaultAsync(ct);
+
+            if(row is null) return null;
+
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+
+            return new DoctorDetailsDto(
+
+                row.DoctorId,
+                row.Name,
+                row.Specialization,
+                row.ProfileImageUrl,
+                CalculateYears(row.CareerStarDate, today),
+                row.Biography,
+                row.ClinicRoom,
+                row.Quilifications);
+
+
+        }
     }
 }
