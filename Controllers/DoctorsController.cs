@@ -11,17 +11,9 @@ namespace ClinicManagementSystem.API.Controllers
     {
 
         [HttpGet]
-        public async Task<ActionResult<IReadOnlyList<DoctorListItemDto>>> GetDoctors([FromQuery]string? search, [FromQuery] string? specialization, CancellationToken ct)
-        {
-
-
-            if (search?.Length > 100 || specialization?.Length > 100)
-                return BadRequest("Search values must be 100 characters or fewer");
-
-
-                return Ok(await doctorService.GetDoctorsAsync(search, specialization, ct));
-
-        }
+        public async Task<ActionResult<PagedResult<DoctorListItemDto>>> GetDoctors(
+       [FromQuery] DoctorQueryParameters query, CancellationToken ct)
+       => Ok(await doctorService.GetDoctorsAsync(query, ct));
 
         [HttpGet("specializations")]
         public async Task<ActionResult<IReadOnlyList<string>>>GetSpecialization(CancellationToken ct)=>

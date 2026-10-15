@@ -4,7 +4,7 @@ namespace ClinicManagementSystem.API.Interfaces
 {
     public interface IDoctorService
     {
-        Task<IReadOnlyList<DoctorListItemDto>> GetDoctorsAsync(string? search, string? specialization, CancellationToken ct);
+        Task<PagedResult<DoctorListItemDto>> GetDoctorsAsync(DoctorQueryParameters query, CancellationToken ct);
         Task<IReadOnlyList<string>> GetSpecializationAsync(CancellationToken ct);
         Task<DoctorDetailsDto?> GetDoctorByIdAsync(int id, CancellationToken ct);
     }
