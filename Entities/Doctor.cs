@@ -11,7 +11,7 @@ public partial class Doctor
 
     public string? Specialization { get; set; }
 
-    public DateOnly? CareerStarDate { get; set; }
+    public DateOnly? CareerStartDate { get; set; }
 
     public string? Biography { get; set; }  
 

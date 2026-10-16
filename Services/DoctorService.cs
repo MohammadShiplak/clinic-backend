@@ -35,7 +35,7 @@ namespace ClinicManagementSystem.API.Services
                     d.Person.Name,
                     d.Specialization,
                     d.ProfileImageUrl,
-                    d.CareerStarDate,
+                    d.CareerStartDate,
                     d.Biography,
                     d.ClinicRoom,
                     Quilifications = d.Qualifications
@@ -110,7 +110,7 @@ namespace ClinicManagementSystem.API.Services
                     d.Person.Name,
                     d.Specialization,
                     d.ProfileImageUrl,
-                    d.CareerStarDate
+                    d.CareerStartDate
                 })
                 .ToListAsync(ct);
 
