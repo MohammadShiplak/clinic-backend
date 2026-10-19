@@ -56,7 +56,7 @@ namespace ClinicManagementSystem.API.Services
                 row.Name,
                 row.Specialization,
                 row.ProfileImageUrl,
-                CalculateYears(row.CareerStarDate, today),
+                CalculateYears(row.CareerStartDate, today),
                 row.Biography,
                 row.ClinicRoom,
                 row.Quilifications);
@@ -79,8 +79,8 @@ namespace ClinicManagementSystem.API.Services
                 // earlier start date = MORE experience. "Desc" (most experienced first) = start date ASC.
                 // Doctors with no start date always go last.
                 DoctorSortBy.Experience => desc
-                    ? q.OrderBy(d => d.CareerStarDate == null).ThenBy(d => d.CareerStarDate).ThenBy(d => d.DoctorId)
-                    : q.OrderBy(d => d.CareerStarDate == null).ThenByDescending(d => d.CareerStarDate).ThenBy(d => d.DoctorId),
+                    ? q.OrderBy(d => d.CareerStartDate == null).ThenBy(d => d.CareerStartDate).ThenBy(d => d.DoctorId)
+                    : q.OrderBy(d => d.CareerStartDate == null).ThenByDescending(d => d.CareerStartDate).ThenBy(d => d.DoctorId),
 
                 _ => desc // Name
                     ? q.OrderByDescending(d => d.Person.Name).ThenBy(d => d.DoctorId)
@@ -122,7 +122,7 @@ namespace ClinicManagementSystem.API.Services
                     r.Name,
                     r.Specialization,
                     r.ProfileImageUrl,
-                    CalculateYears(r.CareerStarDate, today)))
+                    CalculateYears(r.CareerStartDate, today)))
                 .ToList();
 
             return new PagedResult<DoctorListItemDto>(items, p.PageNumber, p.PageSize, totalCount);

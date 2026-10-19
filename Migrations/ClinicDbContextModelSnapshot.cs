@@ -79,7 +79,7 @@ namespace ClinicManagementSystem.API.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<DateOnly?>("CareerStarDate")
+                    b.Property<DateOnly?>("CareerStartDate")
                         .HasColumnType("date");
 
                     b.Property<string>("ClinicRoom")
