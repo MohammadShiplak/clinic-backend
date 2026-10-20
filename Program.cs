@@ -14,13 +14,21 @@ builder.Services.AddOptions<AppointmentSettings>()
     .Bind(builder.Configuration.GetSection(AppointmentSettings.SectionName))
     .Validate(s => s.SlotMinute > 0 && s.WorkdayStart < s.WorkdayEnd,
               "Appointments settings are invalid.")
-    .ValidateOnStart();                       
+    .ValidateOnStart();
+
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(
+        new System.Text.Json.Serialization.JsonStringEnumConverter()));
+
 
 builder.Services.AddSingleton(TimeProvider.System);
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+
+
+
 
 builder.Services.AddCors(options =>
 {

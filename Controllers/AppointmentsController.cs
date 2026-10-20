@@ -11,6 +11,10 @@ namespace ClinicManagementSystem.API.Controllers;
 [ApiController]
 public class AppointmentsController(IAppointmentService service) : ControllerBase
 {
+
+    private const int MaxPageSize = 50;
+
+
     [HttpGet("availability")]
     public async Task<ActionResult<IReadOnlyList<SlotDto>>> GetAvailability(
         [FromQuery] int doctorId, [FromQuery] DateOnly date, CancellationToken ct)
@@ -34,4 +38,50 @@ public class AppointmentsController(IAppointmentService service) : ControllerBas
         ServiceError.Conflict => Problem(message, statusCode: StatusCodes.Status409Conflict),
         _ => Problem(message, statusCode: StatusCodes.Status400BadRequest)
     };
+
+    [HttpGet]
+    public async Task<ActionResult<AppointmentDtos.PagedResult<AppointmentListItemDto>>> GetAppointments(
+       [FromQuery] int patientId,
+       [FromQuery] AppointmentScope scope = AppointmentScope.Upcoming,
+       [FromQuery] int pageNumber = 1,
+       [FromQuery] int pageSize = 10,
+       CancellationToken ct = default)
+    {
+        if (!Enum.IsDefined(scope))
+            return BadRequest("scope must be 'upcoming' or 'past'.");
+
+        if (pageNumber < 1 || pageSize < 1 || pageSize > MaxPageSize)
+            return BadRequest($"pageNumber must be at least 1 and pageSize between 1 and {MaxPageSize}.");
+
+        return Ok(await service.GetAppointmentsAsync(patientId, scope, pageNumber, pageSize, ct));
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<AppointmentDetailsDto>> GetAppointment(
+        int id, [FromQuery] int patientId, CancellationToken ct)
+    {
+        var dto = await service.GetByIdAsync(patientId, id, ct);
+        return dto is null ? NotFound() : Ok(dto);
+    }
+
+    [HttpPost("{id:int}/cancel")]
+    public async Task<IActionResult> Cancel(int id, [FromQuery] int patientId, CancellationToken ct)
+    {
+        return await service.CancelAsync(patientId, id, ct) switch
+        {
+            CancelOutcome.Cancelled => NoContent(),
+            CancelOutcome.NotFound => NotFound(),
+            CancelOutcome.NotEligible => Conflict(new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "Appointment cannot be cancelled",
+                Detail = "Only scheduled appointments at least 24 hours away can be cancelled."
+            }),
+            _ => StatusCode(StatusCodes.Status500InternalServerError)
+        };
+    }
 }
+
+
+
+

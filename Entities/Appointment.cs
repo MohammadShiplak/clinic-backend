@@ -5,6 +5,27 @@ namespace ClinicManagementSystem.API.Entities;
 
 public partial class Appointment
 {
+
+    public static readonly TimeSpan MinimumCancellationNotice = TimeSpan.FromHours(24);
+
+    public static bool IsCancellable(AppointmentStatus status, DateTime appointmentUtc,DateTime nowUtc)
+        => status == AppointmentStatus.Scheduled &&
+        appointmentUtc - nowUtc >= MinimumCancellationNotice;
+
+
+    public bool TryCancel(DateTime nowUtc)
+    {
+
+        if(!IsCancellable(Status,AppointmentDateTime,nowUtc)) return false;
+
+
+        Status = AppointmentStatus.Cancelled;   
+        return true;    
+
+    }
+
+        
+
     public int AppointmentId { get; set; }
 
     public int PatientId { get; set; }
