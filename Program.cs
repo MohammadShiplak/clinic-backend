@@ -1,4 +1,5 @@
 using ClinicManagementSystem.API;
+using ClinicManagementSystem.API.Entities;
 using ClinicManagementSystem.API.Interfaces;
 using ClinicManagementSystem.API.Options;
 using ClinicManagementSystem.API.Services;
@@ -26,7 +27,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddControllers();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
-
+builder.Services.AddScoped<IDoctorAvailabilityService, DoctorAvailabilityService>();
 
 
 

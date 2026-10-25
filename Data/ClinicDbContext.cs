@@ -20,7 +20,9 @@ public partial class ClinicDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Person> People => Set<Person>();
     public DbSet<Prescription> Prescriptions => Set<Prescription>();
-
+    public DbSet<DoctorWorkingHour> DoctorWorkingHours => Set<DoctorWorkingHour>();
+    public DbSet<DoctorBreak> DoctorBreaks => Set<DoctorBreak>();
+    public DbSet<DoctorTimeOff> DoctorTimeOffs => Set<DoctorTimeOff>();
     public DbSet<DoctorQualification> DoctorQualifications => Set<DoctorQualification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

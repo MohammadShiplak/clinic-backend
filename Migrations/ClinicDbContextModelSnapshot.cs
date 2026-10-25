@@ -107,6 +107,36 @@ namespace ClinicManagementSystem.API.Migrations
                     b.ToTable("Doctors");
                 });
 
+            modelBuilder.Entity("ClinicManagementSystem.API.Entities.DoctorBreak", b =>
+                {
+                    b.Property<int>("DoctorBreakId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DoctorBreakId"));
+
+                    b.Property<byte>("DayOfWeek")
+                        .HasColumnType("tinyint");
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("int");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time");
+
+                    b.HasKey("DoctorBreakId");
+
+                    b.HasIndex("DoctorId", "DayOfWeek");
+
+                    b.ToTable("DoctorBreakHours", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DoctorBreakHours_Times", "[EndTime] > [StartTime]");
+                        });
+                });
+
             modelBuilder.Entity("ClinicManagementSystem.API.Entities.DoctorQualification", b =>
                 {
                     b.Property<int>("DoctorQualificationId")
@@ -135,6 +165,67 @@ namespace ClinicManagementSystem.API.Migrations
                     b.HasIndex("DoctorId");
 
                     b.ToTable("DoctorQualifications");
+                });
+
+            modelBuilder.Entity("ClinicManagementSystem.API.Entities.DoctorTimeOff", b =>
+                {
+                    b.Property<int>("DoctorTimeOffId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DoctorTimeOffId"));
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EndDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("StartDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("DoctorTimeOffId");
+
+                    b.HasIndex("DoctorId", "StartDateTime");
+
+                    b.ToTable("DoctorTimeOffs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DoctorTimeOffs_Dates", "[EndDateTime] > [StartDateTime]");
+                        });
+                });
+
+            modelBuilder.Entity("ClinicManagementSystem.API.Entities.DoctorWorkingHour", b =>
+                {
+                    b.Property<int>("DoctorWorkingHourId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DoctorWorkingHourId"));
+
+                    b.Property<byte>("DayOfWeek")
+                        .HasColumnType("tinyint");
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("int");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time");
+
+                    b.HasKey("DoctorWorkingHourId");
+
+                    b.HasIndex("DoctorId", "DayOfWeek");
+
+                    b.ToTable("DoctorWorkingHours", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DoctorWorkingHours_Times", "[EndTime] > [StartTime]");
+                        });
                 });
 
             modelBuilder.Entity("ClinicManagementSystem.API.Entities.MedicalRecord", b =>
@@ -342,12 +433,45 @@ namespace ClinicManagementSystem.API.Migrations
                     b.Navigation("Person");
                 });
 
+            modelBuilder.Entity("ClinicManagementSystem.API.Entities.DoctorBreak", b =>
+                {
+                    b.HasOne("ClinicManagementSystem.API.Entities.Doctor", "Doctor")
+                        .WithMany("Breaks")
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+                });
+
             modelBuilder.Entity("ClinicManagementSystem.API.Entities.DoctorQualification", b =>
                 {
                     b.HasOne("ClinicManagementSystem.API.Entities.Doctor", "Doctor")
                         .WithMany("Qualifications")
                         .HasForeignKey("DoctorId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+                });
+
+            modelBuilder.Entity("ClinicManagementSystem.API.Entities.DoctorTimeOff", b =>
+                {
+                    b.HasOne("ClinicManagementSystem.API.Entities.Doctor", "Doctor")
+                        .WithMany("TimeOff")
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+                });
+
+            modelBuilder.Entity("ClinicManagementSystem.API.Entities.DoctorWorkingHour", b =>
+                {
+                    b.HasOne("ClinicManagementSystem.API.Entities.Doctor", "Doctor")
+                        .WithMany("WorkingHours")
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Doctor");
@@ -379,7 +503,13 @@ namespace ClinicManagementSystem.API.Migrations
                 {
                     b.Navigation("Appointments");
 
+                    b.Navigation("Breaks");
+
                     b.Navigation("Qualifications");
+
+                    b.Navigation("TimeOff");
+
+                    b.Navigation("WorkingHours");
                 });
 
             modelBuilder.Entity("ClinicManagementSystem.API.Entities.MedicalRecord", b =>
