@@ -61,9 +61,6 @@ namespace ClinicManagementSystem.API.Services
 
 
 
-            if (!await context.Patients.AnyAsync(p => p.PatientId == request.PatientId, ct))
-                return ServiceResult<AppointmentDto>.Fail(ServiceError.NotFound, "Patient not found.");
-
             var appointment = new Appointment
             {
                 DoctorId = request.DoctorId,

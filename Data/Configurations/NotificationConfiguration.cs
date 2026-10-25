@@ -15,7 +15,9 @@ namespace ClinicManagementSystem.API.Data.Configurations
             builder.Property(n => n.Message).IsRequired().HasMaxLength(500);
             builder.Property(n => n.Type).IsRequired();
             builder.Property(n => n.CreatedAtUtc).HasColumnType("datetime2(2)");
-            builder.Property(n => n.ReadAtUtc).HasColumnType("datetime2(2)");
+            builder.Property(n => n.CreatedAtUtc)
+    .HasColumnType("datetime2(2)")
+    .HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
 
             builder.HasOne(n => n.Person)
                 .WithMany()

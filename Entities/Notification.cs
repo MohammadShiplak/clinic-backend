@@ -19,24 +19,14 @@
         public Person Person { get; set; } = null!;
         public Appointment? Appointment { get; set; }
 
+    }
 
-
-
-
-
-
-
-
-
-
-        public enum NotificationType: byte
-        {
-            AppointmentBooked = 1,
-            AppointmentCancelled = 2,
-            AppointmentReminder = 3
-
-        }
-
+    public enum NotificationType : byte
+    {
+        AppointmentBooked = 1,
+        AppointmentCancelled = 2,
+        AppointmentReminder = 3
 
     }
+
 }
