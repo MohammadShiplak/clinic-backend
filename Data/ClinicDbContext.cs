@@ -24,6 +24,7 @@ public partial class ClinicDbContext : DbContext
     public DbSet<DoctorBreak> DoctorBreaks => Set<DoctorBreak>();
     public DbSet<DoctorTimeOff> DoctorTimeOffs => Set<DoctorTimeOff>();
     public DbSet<DoctorQualification> DoctorQualifications => Set<DoctorQualification>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

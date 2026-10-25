@@ -13,7 +13,7 @@ namespace ClinicManagementSystem.API.Services
     public class AppointmentService(
         ClinicDbContext context,
         IOptions<AppointmentSettings> options,
-        TimeProvider timeProvider) : IAppointmentService
+        TimeProvider timeProvider,INotificationService notifications) : IAppointmentService
     {
         private readonly AppointmentSettings _s = options.Value;
         private readonly TimeZoneInfo _clinicTz = TimeZoneInfo.FindSystemTimeZoneById(options.Value.TimeZoneId);
@@ -41,13 +41,25 @@ namespace ClinicManagementSystem.API.Services
                 return ServiceResult<AppointmentDto>.Fail(
                     ServiceError.Validation, "The selected time is not a valid bookable slot.");
 
-            var doctorName = await context.Doctors.AsNoTracking()
+            var doctor = await context.Doctors.AsNoTracking()
                 .Where(d => d.DoctorId == request.DoctorId)
-                .Select(d => d.Person.Name)
+                .Select(d => new {d.PersonId,d.Person.Name })
                 .FirstOrDefaultAsync(ct);
 
-            if (doctorName is null)
+            if (doctor is null)
                 return ServiceResult<AppointmentDto>.Fail(ServiceError.NotFound, "Doctor not found.");
+
+
+            var patient = await context.Patients.AsNoTracking()
+    .Where(p => p.PatientId == request.PatientId)
+    .Select(p => new { p.PersonId, p.Person.Name })
+    .FirstOrDefaultAsync(ct);
+
+
+            if (patient is null)
+                return ServiceResult<AppointmentDto>.Fail(ServiceError.NotFound, "Patient not found.");
+
+
 
             if (!await context.Patients.AnyAsync(p => p.PatientId == request.PatientId, ct))
                 return ServiceResult<AppointmentDto>.Fail(ServiceError.NotFound, "Patient not found.");
@@ -61,6 +73,13 @@ namespace ClinicManagementSystem.API.Services
             };
 
             context.Appointments.Add(appointment);
+
+            notifications.AddAppointmentBooked(new AppointmentNotificationContext(
+    appointment,
+    patient.PersonId, patient.Name,
+    doctor.PersonId, doctor.Name));
+
+
 
             try
             {
@@ -76,7 +95,7 @@ namespace ClinicManagementSystem.API.Services
             return ServiceResult<AppointmentDto>.Ok(new AppointmentDto(
                 appointment.AppointmentId,
                 appointment.DoctorId,
-                doctorName,
+                doctor.Name,
                 appointment.AppointmentDateTime,
                 appointment.Status.ToString()));
         }
@@ -235,13 +254,23 @@ namespace ClinicManagementSystem.API.Services
         {
             // Tracked on purpose: we are about to modify this row.
             var appointment = await context.Appointments
-                .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId && a.PatientId == patientId, ct);
+          .Include(a => a.Patient).ThenInclude(p => p.Person)
+          .Include(a => a.Doctor).ThenInclude(d => d.Person)
+          .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId && a.PatientId == patientId, ct);
 
             // Someone else's appointment looks exactly like a missing one (no id probing).
             if (appointment is null) return CancelOutcome.NotFound;
 
             if (!appointment.TryCancel(ClinicNow())) // FIX: was UTC
                 return CancelOutcome.NotEligible;
+
+            notifications.AddAppointmentCancelled(
+       new AppointmentNotificationContext(
+           appointment,
+           appointment.Patient.PersonId, appointment.Patient.Person.Name,
+           appointment.Doctor.PersonId, appointment.Doctor.Person.Name),
+       cancelledByPersonId: appointment.Patient.PersonId);
+
 
             await context.SaveChangesAsync(ct);
             return CancelOutcome.Cancelled;
