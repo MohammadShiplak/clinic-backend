@@ -3,6 +3,7 @@ using ClinicManagementSystem.API.Entities;
 using ClinicManagementSystem.API.Interfaces;
 using ClinicManagementSystem.API.Options;
 using ClinicManagementSystem.API.Services;
+using ClinicManagementSystem.API.Workers;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,12 @@ builder.Services.AddOptions<AppointmentSettings>()
     .Bind(builder.Configuration.GetSection(AppointmentSettings.SectionName))
     .Validate(s => s.SlotMinute > 0 && s.WorkdayStart < s.WorkdayEnd,
               "Appointments settings are invalid.")
+    .ValidateOnStart();
+
+
+builder.Services.AddOptions<ReminderSettings>()
+    .Bind(builder.Configuration.GetSection(ReminderSettings.SectionName))
+    .Validate(s => s.LeadTimeHours > 0 && s.CheckIntervalMinutes > 0, "Reminder settings are invalid.")
     .ValidateOnStart();
 
 builder.Services.AddControllers()
@@ -30,6 +37,9 @@ builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IDoctorAvailabilityService, DoctorAvailabilityService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<INotificationInboxService, NotificationInboxService>();
+builder.Services.AddScoped<IAppointmentReminderService, AppointmentReminderService>();
+builder.Services.AddHostedService<AppointmentReminderWorker>();
+
 
 builder.Services.AddCors(options =>
 {

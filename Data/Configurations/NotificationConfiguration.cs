@@ -31,6 +31,10 @@ namespace ClinicManagementSystem.API.Data.Configurations
 
             // Serves: "my notifications, newest first" and "my unread count"
             builder.HasIndex(n => new { n.PersonId, n.IsRead, n.CreatedAtUtc });
+            // Hard guarantee: at most one reminder per appointment per person (even with a bug or 2 servers)
+            builder.HasIndex(n => new { n.AppointmentId, n.PersonId, n.Type })
+                .IsUnique()
+                .HasFilter($"[Type] = {(byte)NotificationType.AppointmentReminder}");
         }
     }
 }

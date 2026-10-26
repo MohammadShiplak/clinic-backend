@@ -11,6 +11,8 @@ namespace ClinicManagementSystem.API.Interfaces
 
         /// Notifies every party except the person who cancelled.
         void AddAppointmentCancelled(AppointmentNotificationContext appointment, int cancelledByPersonId);
+        /// Adds ONE reminder per person. Does NOT save: the caller commits.
+        void AddAppointmentReminder(AppointmentNotificationContext appointment);
     }
 
 }

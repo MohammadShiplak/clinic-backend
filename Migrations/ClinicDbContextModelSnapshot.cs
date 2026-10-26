@@ -279,7 +279,7 @@ namespace ClinicManagementSystem.API.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("ReadAtUtc")
-                        .HasColumnType("datetime2(2)");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -291,7 +291,9 @@ namespace ClinicManagementSystem.API.Migrations
 
                     b.HasKey("NotificationId");
 
-                    b.HasIndex("AppointmentId");
+                    b.HasIndex("AppointmentId", "PersonId", "Type")
+                        .IsUnique()
+                        .HasFilter("[Type] = 3");
 
                     b.HasIndex("PersonId", "IsRead", "CreatedAtUtc");
 

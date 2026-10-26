@@ -46,4 +46,20 @@ public class NotificationService(ClinicDbContext context, TimeProvider clock) : 
         });
 
     private static string Format(DateTime dt) => dt.ToString("ddd, dd MMM yyyy 'at' HH:mm");
+
+    public void AddAppointmentReminder(AppointmentNotificationContext c)
+    {
+        var when = Format(c.Appointment.AppointmentDateTime);
+
+        Add(c.PatientPersonId, c.Appointment, NotificationType.AppointmentReminder,
+            "Appointment reminder",
+            $"Reminder: you have an appointment with Dr. {c.DoctorName} on {when}.");
+
+        // One Person can hold both roles (your test data does!). The unique index allows only
+        // ONE reminder per (appointment, person), so don't create a second row for the same person.
+        if (c.DoctorPersonId != c.PatientPersonId)
+            Add(c.DoctorPersonId, c.Appointment, NotificationType.AppointmentReminder,
+                "Appointment reminder",
+                $"Reminder: you have an appointment with {c.PatientName} on {when}.");
+    }
 }
