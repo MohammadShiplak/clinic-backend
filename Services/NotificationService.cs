@@ -42,7 +42,8 @@ public class NotificationService(ClinicDbContext context, TimeProvider clock) : 
             Type = type,
             Title = title,
             Message = message,
-            CreatedAtUtc = clock.GetUtcNow().UtcDateTime
+            CreatedAtUtc = clock.GetUtcNow().UtcDateTime,
+            EmailStatus = EmailDeliveryStatus.Pending,
         });
 
     private static string Format(DateTime dt) => dt.ToString("ddd, dd MMM yyyy 'at' HH:mm");

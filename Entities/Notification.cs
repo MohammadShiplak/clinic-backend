@@ -19,6 +19,13 @@
         public Person Person { get; set; } = null!;
         public Appointment? Appointment { get; set; }
 
+        public EmailDeliveryStatus EmailStatus { get; set; }
+        public int EmailAttempts { get; set; }
+        public DateTime? EmailSentAtUtc { get; set; }
+        public string? EmailLastError { get; set; }
+
+
+
     }
 
     public enum NotificationType : byte
@@ -28,5 +35,5 @@
         AppointmentReminder = 3
 
     }
-
+    public enum EmailDeliveryStatus : byte { None = 0, Pending = 1, Sent = 2, Failed = 3 }
 }

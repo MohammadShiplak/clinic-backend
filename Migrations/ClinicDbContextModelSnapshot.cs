@@ -267,6 +267,19 @@ namespace ClinicManagementSystem.API.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2(2)");
 
+                    b.Property<int>("EmailAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EmailLastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("EmailSentAtUtc")
+                        .HasColumnType("datetime2(2)");
+
+                    b.Property<byte>("EmailStatus")
+                        .HasColumnType("tinyint");
+
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
 
@@ -290,6 +303,9 @@ namespace ClinicManagementSystem.API.Migrations
                         .HasColumnType("tinyint");
 
                     b.HasKey("NotificationId");
+
+                    b.HasIndex("EmailStatus", "NotificationId")
+                        .HasFilter("[EmailStatus] = 1");
 
                     b.HasIndex("AppointmentId", "PersonId", "Type")
                         .IsUnique()

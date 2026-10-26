@@ -24,12 +24,27 @@ builder.Services.AddOptions<ReminderSettings>()
     .Validate(s => s.LeadTimeHours > 0 && s.CheckIntervalMinutes > 0, "Reminder settings are invalid.")
     .ValidateOnStart();
 
+builder.Services.AddOptions<EmailSettings>()
+    .Bind(builder.Configuration.GetSection(EmailSettings.SectionName))
+    .Validate(s => s.DispatchIntervalSeconds > 0 && s.MaxAttempts > 0
+                   && (!s.Provider.Equals("Smtp", StringComparison.OrdinalIgnoreCase)
+                       || (!string.IsNullOrWhiteSpace(s.Host) && !string.IsNullOrWhiteSpace(s.FromAddress))),
+              "Email settings are invalid.")
+    .ValidateOnStart();
+
+
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(
         new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
 
 builder.Services.AddSingleton(TimeProvider.System);
+
+if (string.Equals(builder.Configuration["Email:Provider"], "Smtp", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+else
+    builder.Services.AddSingleton<IEmailSender, LoggingEmailSender>();
+
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
@@ -39,7 +54,8 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<INotificationInboxService, NotificationInboxService>();
 builder.Services.AddScoped<IAppointmentReminderService, AppointmentReminderService>();
 builder.Services.AddHostedService<AppointmentReminderWorker>();
-
+builder.Services.AddScoped<INotificationEmailDispatcher, NotificationEmailDispatcher>();
+builder.Services.AddHostedService<NotificationEmailWorker>();
 
 builder.Services.AddCors(options =>
 {
