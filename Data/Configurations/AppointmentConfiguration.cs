@@ -43,6 +43,9 @@ namespace ClinicManagementSystem.API.Data.Configurations
     .IsUnique()
     .HasFilter($"[Status] <> {(byte)AppointmentStatus.Cancelled}");
 
+            // AppointmentConfiguration.cs, add inside Configure
+            builder.HasIndex(a => new { a.PatientId, a.AppointmentDateTime });
+
         }
     }
 }

@@ -56,6 +56,7 @@ builder.Services.AddScoped<IAppointmentReminderService, AppointmentReminderServi
 builder.Services.AddHostedService<AppointmentReminderWorker>();
 builder.Services.AddScoped<INotificationEmailDispatcher, NotificationEmailDispatcher>();
 builder.Services.AddHostedService<NotificationEmailWorker>();
+builder.Services.AddScoped<IPatientService, PatientService>();
 
 builder.Services.AddCors(options =>
 {

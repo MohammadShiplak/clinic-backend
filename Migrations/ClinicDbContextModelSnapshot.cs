@@ -54,8 +54,6 @@ namespace ClinicManagementSystem.API.Migrations
                         .IsUnique()
                         .HasFilter("[MedicalRecordId] IS NOT NULL");
 
-                    b.HasIndex("PatientId");
-
                     b.HasIndex("PaymentId")
                         .IsUnique()
                         .HasFilter("[PaymentId] IS NOT NULL");
@@ -63,6 +61,8 @@ namespace ClinicManagementSystem.API.Migrations
                     b.HasIndex("DoctorId", "AppointmentDateTime")
                         .IsUnique()
                         .HasFilter("[Status] <> 3");
+
+                    b.HasIndex("PatientId", "AppointmentDateTime");
 
                     b.ToTable("Appointments", (string)null);
                 });
@@ -324,10 +324,17 @@ namespace ClinicManagementSystem.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PatientId"));
 
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<int>("PersonId")
                         .HasColumnType("int");
 
                     b.HasKey("PatientId");
+
+                    b.HasIndex("IsActive");
 
                     b.HasIndex("PersonId")
                         .IsUnique();
