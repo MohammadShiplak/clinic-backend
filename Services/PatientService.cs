@@ -43,7 +43,8 @@ public class PatientService(ClinicDbContext context,TimeProvider clock) : IPatie
                 p.Person.Name,
                 p.Person.PhoneNumber,
                 p.Person.Email,
-                p.Person.DateOfBirth
+                p.Person.DateOfBirth,
+                p.IsActive
             })
             .ToListAsync(ct);
 
@@ -55,7 +56,8 @@ public class PatientService(ClinicDbContext context,TimeProvider clock) : IPatie
                 r.Name,
                 r.PhoneNumber,
                 r.Email,
-                DateMath.WholeYearsBetween(r.DateOfBirth, today)))
+                DateMath.WholeYearsBetween(r.DateOfBirth, today),
+                r.IsActive))
             .ToList();
 
         return new PagedResult<PatientListItemDto>(items, totalCount, pageNumber, pageSize);

@@ -6,6 +6,7 @@
             string FullName,
             string PhoneNumber,
             string? Email,
-            int? Age);
+            int? Age,
+            bool IsActive);
     
 }
