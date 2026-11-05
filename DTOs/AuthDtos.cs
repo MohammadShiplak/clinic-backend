@@ -15,3 +15,8 @@ public record RegisterDto(
 public record LoginDto(
     [Required, EmailAddress, StringLength(100)] string Email,
     [Required, StringLength(128)] string Password);
+
+
+public record RegisterResultDto(int PatientId, int PersonId, string Email);
+
+

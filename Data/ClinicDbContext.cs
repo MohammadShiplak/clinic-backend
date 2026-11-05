@@ -26,6 +26,8 @@ public partial class ClinicDbContext : DbContext
     public DbSet<DoctorQualification> DoctorQualifications => Set<DoctorQualification>();
     public DbSet<Notification> Notifications => Set<Notification>();
 
+    public DbSet<UserAccount> UserAccounts => Set<UserAccount>();  
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ClinicDbContext).Assembly);
