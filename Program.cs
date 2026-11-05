@@ -39,6 +39,8 @@ builder.Services.AddControllers()
 
 
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<IPasswordService, PasswordService>();
+
 
 if (string.Equals(builder.Configuration["Email:Provider"], "Smtp", StringComparison.OrdinalIgnoreCase))
     builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
@@ -58,6 +60,7 @@ builder.Services.AddScoped<INotificationEmailDispatcher, NotificationEmailDispat
 builder.Services.AddHostedService<NotificationEmailWorker>();
 builder.Services.AddScoped<IPatientService, PatientService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
@@ -84,4 +87,12 @@ app.UseCors("Frontend");       // before authentication/authorization
 app.UseAuthorization();
 app.MapControllers();
 
+
+var pw = new PasswordService();
+var h1 = pw.Hash("MyPassw0rd!");
+var h2 = pw.Hash("MyPassw0rd!");
+Console.WriteLine(h1);
+Console.WriteLine(h1 == h2);                      // expect: False (random salt)
+Console.WriteLine(pw.Verify(h1, "MyPassw0rd!"));  // expect: True
+Console.WriteLine(pw.Verify(h1, "wrong"));        // expect: False
 app.Run();

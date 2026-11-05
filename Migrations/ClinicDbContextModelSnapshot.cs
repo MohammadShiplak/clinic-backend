@@ -459,6 +459,50 @@ namespace ClinicManagementSystem.API.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ClinicManagementSystem.API.Entities.UserAccount", b =>
+                {
+                    b.Property<int>("UserAccountId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserAccountId"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(2)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastLoginAtUtc")
+                        .HasColumnType("datetime2(2)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("PersonId")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("Role")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("UserAccountId");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("PersonId")
+                        .IsUnique();
+
+                    b.ToTable("UserAccounts", (string)null);
+                });
+
             modelBuilder.Entity("ClinicManagementSystem.API.Entities.Appointment", b =>
                 {
                     b.HasOne("ClinicManagementSystem.API.Entities.Doctor", "Doctor")
@@ -587,6 +631,17 @@ namespace ClinicManagementSystem.API.Migrations
                     b.Navigation("MedicalRecord");
                 });
 
+            modelBuilder.Entity("ClinicManagementSystem.API.Entities.UserAccount", b =>
+                {
+                    b.HasOne("ClinicManagementSystem.API.Entities.Person", "Person")
+                        .WithOne("UserAccount")
+                        .HasForeignKey("ClinicManagementSystem.API.Entities.UserAccount", "PersonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Person");
+                });
+
             modelBuilder.Entity("ClinicManagementSystem.API.Entities.Doctor", b =>
                 {
                     b.Navigation("Appointments");
@@ -622,6 +677,8 @@ namespace ClinicManagementSystem.API.Migrations
                     b.Navigation("Doctor");
 
                     b.Navigation("Patient");
+
+                    b.Navigation("UserAccount");
                 });
 #pragma warning restore 612, 618
         }

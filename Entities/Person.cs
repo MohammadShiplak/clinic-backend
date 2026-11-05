@@ -21,4 +21,5 @@ public partial class Person
 
     public Patient? Patient { get; set; }
     public Doctor? Doctor { get; set; }
+    public UserAccount? UserAccount { get; set; }   // NEW
 }

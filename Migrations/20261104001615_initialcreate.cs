@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ClinicManagementSystem.API.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class initialcreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -93,7 +93,11 @@ namespace ClinicManagementSystem.API.Migrations
                     DoctorId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     PersonId = table.Column<int>(type: "int", nullable: false),
-                    Specialization = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
+                    Specialization = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    CareerStartDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    Biography = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
+                    ClinicRoom = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    ProfileImageUrl = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -112,7 +116,8 @@ namespace ClinicManagementSystem.API.Migrations
                 {
                     PatientId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    PersonId = table.Column<int>(type: "int", nullable: false)
+                    PersonId = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -123,6 +128,97 @@ namespace ClinicManagementSystem.API.Migrations
                         principalTable: "People",
                         principalColumn: "PersonId",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DoctorBreakHours",
+                columns: table => new
+                {
+                    DoctorBreakId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DoctorId = table.Column<int>(type: "int", nullable: false),
+                    DayOfWeek = table.Column<byte>(type: "tinyint", nullable: false),
+                    StartTime = table.Column<TimeOnly>(type: "time", nullable: false),
+                    EndTime = table.Column<TimeOnly>(type: "time", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DoctorBreakHours", x => x.DoctorBreakId);
+                    table.CheckConstraint("CK_DoctorBreakHours_Times", "[EndTime] > [StartTime]");
+                    table.ForeignKey(
+                        name: "FK_DoctorBreakHours_Doctors_DoctorId",
+                        column: x => x.DoctorId,
+                        principalTable: "Doctors",
+                        principalColumn: "DoctorId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DoctorQualifications",
+                columns: table => new
+                {
+                    DoctorQualificationId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DoctorId = table.Column<int>(type: "int", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    Institution = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
+                    YearAwarded = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DoctorQualifications", x => x.DoctorQualificationId);
+                    table.ForeignKey(
+                        name: "FK_DoctorQualifications_Doctors_DoctorId",
+                        column: x => x.DoctorId,
+                        principalTable: "Doctors",
+                        principalColumn: "DoctorId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DoctorTimeOffs",
+                columns: table => new
+                {
+                    DoctorTimeOffId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DoctorId = table.Column<int>(type: "int", nullable: false),
+                    StartDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EndDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DoctorTimeOffs", x => x.DoctorTimeOffId);
+                    table.CheckConstraint("CK_DoctorTimeOffs_Dates", "[EndDateTime] > [StartDateTime]");
+                    table.ForeignKey(
+                        name: "FK_DoctorTimeOffs_Doctors_DoctorId",
+                        column: x => x.DoctorId,
+                        principalTable: "Doctors",
+                        principalColumn: "DoctorId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DoctorWorkingHours",
+                columns: table => new
+                {
+                    DoctorWorkingHourId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DoctorId = table.Column<int>(type: "int", nullable: false),
+                    DayOfWeek = table.Column<byte>(type: "tinyint", nullable: false),
+                    StartTime = table.Column<TimeOnly>(type: "time", nullable: false),
+                    EndTime = table.Column<TimeOnly>(type: "time", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DoctorWorkingHours", x => x.DoctorWorkingHourId);
+                    table.CheckConstraint("CK_DoctorWorkingHours_Times", "[EndTime] > [StartTime]");
+                    table.ForeignKey(
+                        name: "FK_DoctorWorkingHours_Doctors_DoctorId",
+                        column: x => x.DoctorId,
+                        principalTable: "Doctors",
+                        principalColumn: "DoctorId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -167,6 +263,42 @@ namespace ClinicManagementSystem.API.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "Notifications",
+                columns: table => new
+                {
+                    NotificationId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PersonId = table.Column<int>(type: "int", nullable: false),
+                    AppointmentId = table.Column<int>(type: "int", nullable: true),
+                    Type = table.Column<byte>(type: "tinyint", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Message = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    IsRead = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2(2)", nullable: false),
+                    ReadAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    EmailStatus = table.Column<byte>(type: "tinyint", nullable: false),
+                    EmailAttempts = table.Column<int>(type: "int", nullable: false),
+                    EmailSentAtUtc = table.Column<DateTime>(type: "datetime2(2)", nullable: true),
+                    EmailLastError = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Notifications", x => x.NotificationId);
+                    table.ForeignKey(
+                        name: "FK_Notifications_Appointments_AppointmentId",
+                        column: x => x.AppointmentId,
+                        principalTable: "Appointments",
+                        principalColumn: "AppointmentId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Notifications_People_PersonId",
+                        column: x => x.PersonId,
+                        principalTable: "People",
+                        principalColumn: "PersonId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_Appointments_DoctorId_AppointmentDateTime",
                 table: "Appointments",
@@ -182,9 +314,9 @@ namespace ClinicManagementSystem.API.Migrations
                 filter: "[MedicalRecordId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Appointments_PatientId",
+                name: "IX_Appointments_PatientId_AppointmentDateTime",
                 table: "Appointments",
-                column: "PatientId");
+                columns: new[] { "PatientId", "AppointmentDateTime" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Appointments_PaymentId",
@@ -194,10 +326,58 @@ namespace ClinicManagementSystem.API.Migrations
                 filter: "[PaymentId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DoctorBreakHours_DoctorId_DayOfWeek",
+                table: "DoctorBreakHours",
+                columns: new[] { "DoctorId", "DayOfWeek" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DoctorQualifications_DoctorId",
+                table: "DoctorQualifications",
+                column: "DoctorId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Doctors_PersonId",
                 table: "Doctors",
                 column: "PersonId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Doctors_Specialization",
+                table: "Doctors",
+                column: "Specialization");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DoctorTimeOffs_DoctorId_StartDateTime",
+                table: "DoctorTimeOffs",
+                columns: new[] { "DoctorId", "StartDateTime" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DoctorWorkingHours_DoctorId_DayOfWeek",
+                table: "DoctorWorkingHours",
+                columns: new[] { "DoctorId", "DayOfWeek" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notifications_AppointmentId_PersonId_Type",
+                table: "Notifications",
+                columns: new[] { "AppointmentId", "PersonId", "Type" },
+                unique: true,
+                filter: "[Type] = 3");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notifications_EmailStatus_NotificationId",
+                table: "Notifications",
+                columns: new[] { "EmailStatus", "NotificationId" },
+                filter: "[EmailStatus] = 1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notifications_PersonId_IsRead_CreatedAtUtc",
+                table: "Notifications",
+                columns: new[] { "PersonId", "IsRead", "CreatedAtUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Patients_IsActive",
+                table: "Patients",
+                column: "IsActive");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Patients_PersonId",
@@ -220,22 +400,37 @@ namespace ClinicManagementSystem.API.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Appointments");
+                name: "DoctorBreakHours");
+
+            migrationBuilder.DropTable(
+                name: "DoctorQualifications");
+
+            migrationBuilder.DropTable(
+                name: "DoctorTimeOffs");
+
+            migrationBuilder.DropTable(
+                name: "DoctorWorkingHours");
+
+            migrationBuilder.DropTable(
+                name: "Notifications");
 
             migrationBuilder.DropTable(
                 name: "Prescriptions");
 
             migrationBuilder.DropTable(
+                name: "Appointments");
+
+            migrationBuilder.DropTable(
                 name: "Doctors");
+
+            migrationBuilder.DropTable(
+                name: "MedicalRecords");
 
             migrationBuilder.DropTable(
                 name: "Patients");
 
             migrationBuilder.DropTable(
                 name: "Payments");
-
-            migrationBuilder.DropTable(
-                name: "MedicalRecords");
 
             migrationBuilder.DropTable(
                 name: "People");
