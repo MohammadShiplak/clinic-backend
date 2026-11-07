@@ -1,6 +1,7 @@
 ﻿using ClinicManagementSystem.API.Common;
 using ClinicManagementSystem.API.DTOs;
 using ClinicManagementSystem.API.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClinicManagementSystem.API.Controllers;
@@ -10,6 +11,7 @@ namespace ClinicManagementSystem.API.Controllers;
 public class AuthController(IAuthService auth) : ControllerBase
 {
     [HttpPost("register")]
+    [AllowAnonymous]
     public async Task<ActionResult<RegisterResultDto>> Register(RegisterDto dto, CancellationToken ct)
     {
         var result = await auth.RegisterAsync(dto, ct);
@@ -19,6 +21,7 @@ public class AuthController(IAuthService auth) : ControllerBase
     }
 
     [HttpPost("login")]
+    [AllowAnonymous]
     public async Task<ActionResult<LoginResultDto>> Login(LoginDto dto, CancellationToken ct)
     {
         var result = await auth.LoginAsync(dto, ct);

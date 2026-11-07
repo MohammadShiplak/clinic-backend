@@ -20,7 +20,7 @@ public record LoginDto(
 
 public record RegisterResultDto(int PatientId, int PersonId, string Email);
 
-public record UserSummaryDto(int PersonId, string FullName, string Email, UserRole Role);
+public record UserSummaryDto(int PersonId, int? PatientId, string FullName, string Email, UserRole Role);
 
 public record LoginResultDto(string AccessToken, DateTime ExpiresAtUtc, UserSummaryDto User);
 

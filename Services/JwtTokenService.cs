@@ -1,6 +1,7 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using ClinicManagementSystem.API.Common;
 using ClinicManagementSystem.API.Entities;
 using ClinicManagementSystem.API.Interfaces;
 using ClinicManagementSystem.API.Options;
@@ -20,7 +21,9 @@ public class JwtTokenService(IOptions<JwtSettings> options, TimeProvider clock) 
 
     private readonly JwtSecurityTokenHandler _handler = new();
 
-    public AccessToken Create(UserAccount account)
+
+
+    public AccessToken Create(UserAccount account, int? patientId)
     {
         var now = clock.GetUtcNow().UtcDateTime;
         var expires = now.AddMinutes(_s.AccessTokenMinutes);
@@ -30,9 +33,14 @@ public class JwtTokenService(IOptions<JwtSettings> options, TimeProvider clock) 
             new(JwtRegisteredClaimNames.Sub, account.UserAccountId.ToString()),
             new(JwtRegisteredClaimNames.Email, account.Email),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),   // unique token id (useful for revocation later)
-            new(ClaimTypes.Role, account.Role.ToString()),
-            new("person_id", account.PersonId.ToString())
+            new(AppClaims.Role, account.Role.ToString()),
+            new(AppClaims.Role, account.PersonId.ToString())
         };
+
+        if (patientId is int id)
+            claims.Add(new Claim(AppClaims.PatientId, id.ToString()));
+
+
 
         var token = new JwtSecurityToken(
             issuer: _s.Issuer,

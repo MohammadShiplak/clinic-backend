@@ -8,7 +8,8 @@ public record AccessToken(string Value, DateTime ExpiresAtUtc);
 
 public interface IJwtTokenService
 {
-    AccessToken Create(UserAccount account);
+ 
+    AccessToken Create(UserAccount account, int? patientId);
 }
 
 

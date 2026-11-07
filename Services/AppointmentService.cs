@@ -28,7 +28,7 @@ namespace ClinicManagementSystem.API.Services
 
         // ======================= BOOKING =======================
 
-        public async Task<ServiceResult<AppointmentDto>> BookAsync(CreateAppointmentRequest request, CancellationToken ct)
+        public async Task<ServiceResult<AppointmentDto>> BookAsync(int patientId,CreateAppointmentRequest request, CancellationToken ct)
         {
             var requested = DateTime.SpecifyKind(request.AppointmentDateTime, DateTimeKind.Unspecified);
             var date = DateOnly.FromDateTime(requested);
@@ -51,7 +51,7 @@ namespace ClinicManagementSystem.API.Services
 
 
             var patient = await context.Patients.AsNoTracking()
-    .Where(p => p.PatientId == request.PatientId)
+    .Where(p => p.PatientId == patientId)
     .Select(p => new { p.PersonId, p.Person.Name })
     .FirstOrDefaultAsync(ct);
 
@@ -64,7 +64,7 @@ namespace ClinicManagementSystem.API.Services
             var appointment = new Appointment
             {
                 DoctorId = request.DoctorId,
-                PatientId = request.PatientId,
+                PatientId = patientId,
                 AppointmentDateTime = requested,
                 Status = AppointmentStatus.Scheduled
             };

@@ -33,12 +33,21 @@ public class AuthService(
         account.LastLoginAtUtc = clock.GetUtcNow().UtcDateTime;
         await context.SaveChangesAsync(ct);
 
-        var token = tokens.Create(account);
+        int? patientId = null;
+        if (account.Role == UserRole.Patient)
+        {
+            patientId = await context.Patients
+                .Where(p => p.PersonId == account.PersonId)
+                .Select(p => (int?)p.PatientId)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        var token = tokens.Create(account, patientId);
 
         return ServiceResult<LoginResultDto>.Ok(new LoginResultDto(
             token.Value,
             token.ExpiresAtUtc,
-            new UserSummaryDto(account.PersonId, account.Person.Name, account.Email, account.Role)));
+            new UserSummaryDto(account.PersonId, patientId, account.Person.Name, account.Email, account.Role)));
     }
 
     public async Task<ServiceResult<RegisterResultDto>> RegisterAsync(

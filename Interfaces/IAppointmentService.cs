@@ -13,8 +13,8 @@ namespace ClinicManagementSystem.API.Interfaces
 
 
         Task<ServiceResult<IReadOnlyList<SlotDto>>> GetAvailableSlotsAsync(int doctorId, DateOnly date, CancellationToken ct);
-        Task<ServiceResult<AppointmentDto>> BookAsync(CreateAppointmentRequest request, CancellationToken ct);
 
+        Task<ServiceResult<AppointmentDto>> BookAsync(int patientId, CreateAppointmentRequest request, CancellationToken ct);
 
     }
 }
