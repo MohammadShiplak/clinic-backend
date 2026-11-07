@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using ClinicManagementSystem.API.Entities;
+using System.ComponentModel.DataAnnotations;
 
 namespace ClinicManagementSystem.API.DTOs;
 
@@ -18,5 +19,10 @@ public record LoginDto(
 
 
 public record RegisterResultDto(int PatientId, int PersonId, string Email);
+
+public record UserSummaryDto(int PersonId, string FullName, string Email, UserRole Role);
+
+public record LoginResultDto(string AccessToken, DateTime ExpiresAtUtc, UserSummaryDto User);
+
 
 

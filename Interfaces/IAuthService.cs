@@ -6,4 +6,5 @@ namespace ClinicManagementSystem.API.Interfaces;
 public interface IAuthService
 {
     Task<ServiceResult<RegisterResultDto>> RegisterAsync(RegisterDto dto, CancellationToken ct);
+    Task<ServiceResult<LoginResultDto>> LoginAsync(LoginDto dto, CancellationToken ct);
 }

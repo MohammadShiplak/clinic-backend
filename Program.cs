@@ -32,6 +32,18 @@ builder.Services.AddOptions<EmailSettings>()
               "Email settings are invalid.")
     .ValidateOnStart();
 
+builder.Services.AddOptions<JwtSettings>()
+    .Bind(builder.Configuration.GetSection(JwtSettings.SectionName))
+    .Validate(s => !string.IsNullOrWhiteSpace(s.Issuer)
+                   && !string.IsNullOrWhiteSpace(s.Audience)
+                   && s.SigningKey.Length >= 32
+                   && s.AccessTokenMinutes is >= 1 and <= 1440,
+              "Jwt settings are invalid (signing key must be at least 32 characters).")
+    .ValidateOnStart();
+
+builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
+
+
 
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(

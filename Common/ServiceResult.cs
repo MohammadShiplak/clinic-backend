@@ -1,7 +1,7 @@
 ﻿// Common/ServiceResult.cs
 namespace ClinicManagementSystem.API.Common;
 
-public enum ServiceError { None, NotFound, Validation, Conflict }
+public enum ServiceError { None, NotFound, Validation, Conflict, Unauthorized }
 
 public record ServiceResult<T>(T? Value, ServiceError Error = ServiceError.None, string? Message = null)
 {

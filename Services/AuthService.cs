@@ -9,9 +9,37 @@ namespace ClinicManagementSystem.API.Services;
 public class AuthService(
     ClinicDbContext context,
     IPasswordService passwords,
+    IJwtTokenService tokens,
     TimeProvider clock) : IAuthService
 {
-    private const string EmailTakenMessage = "An account with this email already exists.";
+    private const string InvalidCredentialsMessage = "Invalid email or password.";
+
+    public async Task<ServiceResult<LoginResultDto>> LoginAsync(LoginDto dto, CancellationToken ct)
+    {
+        var email = EmailNormalizer.Normalize(dto.Email);
+
+        // Tracked on purpose: we update LastLoginAtUtc below.
+        var account = await context.UserAccounts
+            .Include(u => u.Person)
+            .FirstOrDefaultAsync(u => u.Email == email, ct);
+
+        // account is null -> Verify burns the same time with a dummy hash and returns false.
+        var passwordOk = passwords.Verify(account?.PasswordHash, dto.Password);
+
+        // ONE message for: unknown email, wrong password, disabled account.
+        if (account is null || !passwordOk || !account.IsActive)
+            return ServiceResult<LoginResultDto>.Fail(ServiceError.Unauthorized, InvalidCredentialsMessage);
+
+        account.LastLoginAtUtc = clock.GetUtcNow().UtcDateTime;
+        await context.SaveChangesAsync(ct);
+
+        var token = tokens.Create(account);
+
+        return ServiceResult<LoginResultDto>.Ok(new LoginResultDto(
+            token.Value,
+            token.ExpiresAtUtc,
+            new UserSummaryDto(account.PersonId, account.Person.Name, account.Email, account.Role)));
+    }
 
     public async Task<ServiceResult<RegisterResultDto>> RegisterAsync(
         RegisterDto dto, CancellationToken ct)
@@ -20,7 +48,7 @@ public class AuthService(
 
         // Cheap early exit BEFORE the expensive hash. The unique index below is the real guarantee.
         if (await context.UserAccounts.AnyAsync(u => u.Email == email, ct))
-            return ServiceResult<RegisterResultDto>.Fail(ServiceError.Conflict, EmailTakenMessage);
+            return ServiceResult<RegisterResultDto>.Fail(ServiceError.Conflict, InvalidCredentialsMessage);
 
         var account = new UserAccount
         {
@@ -54,7 +82,7 @@ public class AuthService(
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
             // Two requests passed the AnyAsync check at the same time; the index stopped the second.
-            return ServiceResult<RegisterResultDto>.Fail(ServiceError.Conflict, EmailTakenMessage);
+            return ServiceResult<RegisterResultDto>.Fail(ServiceError.Conflict, "InvalidCredentialsMessage");
         }
 
         return ServiceResult<RegisterResultDto>.Ok(
