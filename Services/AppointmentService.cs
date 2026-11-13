@@ -1,4 +1,5 @@
-﻿using ClinicManagementSystem.API.Common;
+﻿using ClinicManagementSystem.API.Auth;
+using ClinicManagementSystem.API.Common;
 using ClinicManagementSystem.API.DTOs;
 using ClinicManagementSystem.API.Entities;
 using ClinicManagementSystem.API.Interfaces;
@@ -13,27 +14,49 @@ namespace ClinicManagementSystem.API.Services
     public class AppointmentService(
         ClinicDbContext context,
         IOptions<AppointmentSettings> options,
-        TimeProvider timeProvider,INotificationService notifications) : IAppointmentService
+        TimeProvider timeProvider,
+        INotificationService notifications,
+        ICurrentUser currentUser) : IAppointmentService
     {
         private readonly AppointmentSettings _s = options.Value;
         private readonly TimeZoneInfo _clinicTz = TimeZoneInfo.FindSystemTimeZoneById(options.Value.TimeZoneId);
 
-        // ---------------------------------------------------------------
-        // Time rule for the WHOLE service:
-        // AppointmentDateTime is stored as CLINIC-LOCAL time (Kind = Unspecified).
-        // So every "now" we compare against it must also be clinic-local: ClinicNow().
-        // ---------------------------------------------------------------
+        // AppointmentDateTime is CLINIC-LOCAL, so every "now" is clinic-local too.
         private DateTime ClinicNow() =>
             TimeZoneInfo.ConvertTime(timeProvider.GetUtcNow(), _clinicTz).DateTime;
 
+        private bool IsStaff => currentUser.IsAdmin || currentUser.DoctorId is not null;
+
+        // ONE place that defines which appointments the caller may see.
+        // Every read and write below starts from this query.
+        private IQueryable<Appointment> VisibleAppointments()
+        {
+            var query = context.Appointments.AsQueryable();
+
+            if (currentUser.IsAdmin) return query;
+            if (currentUser.DoctorId is { } doctorId) return query.Where(a => a.DoctorId == doctorId);
+            if (currentUser.PatientId is { } patientId) return query.Where(a => a.PatientId == patientId);
+
+            return query.Where(_ => false);   // unknown user shape: fail closed
+        }
+
+        // Patients keep the 24-hour notice rule. Staff may cancel any future scheduled appointment.
+        private bool CanCancel(AppointmentStatus status, DateTime when, DateTime now) =>
+            IsStaff
+                ? status == AppointmentStatus.Scheduled && when > now
+                : Appointment.IsCancellable(status, when, now);
+
         // ======================= BOOKING =======================
 
-        public async Task<ServiceResult<AppointmentDto>> BookAsync(int patientId,CreateAppointmentRequest request, CancellationToken ct)
+        public async Task<ServiceResult<AppointmentDto>> BookAsync(CreateAppointmentRequest request, CancellationToken ct)
         {
+            // Identity from the TOKEN. A body-supplied patient id would be mass assignment.
+            if (currentUser.PatientId is not { } patientId)
+                return ServiceResult<AppointmentDto>.Fail(ServiceError.Forbidden, "Only patients can book appointments.");
+
             var requested = DateTime.SpecifyKind(request.AppointmentDateTime, DateTimeKind.Unspecified);
             var date = DateOnly.FromDateTime(requested);
 
-            // Never trust the client: re-generate the day's slots and check the requested one is in them.
             var validSlots = SlotGenerator.Generate(
                 date, _s.WorkdayStart, _s.WorkdayEnd, _s.SlotMinute, new HashSet<DateTime>(), ClinicNow());
 
@@ -43,23 +66,22 @@ namespace ClinicManagementSystem.API.Services
 
             var doctor = await context.Doctors.AsNoTracking()
                 .Where(d => d.DoctorId == request.DoctorId)
-                .Select(d => new {d.PersonId,d.Person.Name })
+                .Select(d => new { d.PersonId, d.Person.Name })
                 .FirstOrDefaultAsync(ct);
 
             if (doctor is null)
                 return ServiceResult<AppointmentDto>.Fail(ServiceError.NotFound, "Doctor not found.");
 
-
             var patient = await context.Patients.AsNoTracking()
-    .Where(p => p.PatientId == patientId)
-    .Select(p => new { p.PersonId, p.Person.Name })
-    .FirstOrDefaultAsync(ct);
-
+                .Where(p => p.PatientId == patientId)
+                .Select(p => new { p.PersonId, p.Person.Name, p.IsActive })
+                .FirstOrDefaultAsync(ct);
 
             if (patient is null)
                 return ServiceResult<AppointmentDto>.Fail(ServiceError.NotFound, "Patient not found.");
 
-
+            if (!patient.IsActive)
+                return ServiceResult<AppointmentDto>.Fail(ServiceError.Forbidden, "This patient account is inactive.");
 
             var appointment = new Appointment
             {
@@ -72,11 +94,9 @@ namespace ClinicManagementSystem.API.Services
             context.Appointments.Add(appointment);
 
             notifications.AddAppointmentBooked(new AppointmentNotificationContext(
-    appointment,
-    patient.PersonId, patient.Name,
-    doctor.PersonId, doctor.Name));
-
-
+                appointment,
+                patient.PersonId, patient.Name,
+                doctor.PersonId, doctor.Name));
 
             try
             {
@@ -84,7 +104,6 @@ namespace ClinicManagementSystem.API.Services
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {
-                // The filtered unique index (DoctorId + time, ignoring cancelled) caught a race.
                 return ServiceResult<AppointmentDto>.Fail(
                     ServiceError.Conflict, "This slot was just booked by someone else. Please choose another time.");
             }
@@ -117,7 +136,6 @@ namespace ClinicManagementSystem.API.Services
             var dayStart = date.ToDateTime(TimeOnly.MinValue);
             var dayEnd = dayStart.AddDays(1);
 
-            // Range comparison (not a.AppointmentDateTime.Date == ...) so SQL can use the index.
             var times = await context.Appointments.AsNoTracking()
                 .Where(a => a.DoctorId == doctorId
                          && a.AppointmentDateTime >= dayStart
@@ -135,18 +153,12 @@ namespace ClinicManagementSystem.API.Services
         // ======================= APPOINTMENT MANAGEMENT =======================
 
         public async Task<AppointmentDtos.PagedResult<AppointmentListItemDto>> GetAppointmentsAsync(
-            int patientId, AppointmentScope scope, int pageNumber, int pageSize, CancellationToken ct)
+            AppointmentScope scope, int pageNumber, int pageSize, CancellationToken ct)
         {
-            var now = ClinicNow(); // FIX: was UTC
+            var now = ClinicNow();
 
-            // Security: EVERY query is scoped to the patient. Never trust an id alone.
-            var query = context.Appointments
-                .AsNoTracking()
-                .Where(a => a.PatientId == patientId);
+            var query = VisibleAppointments().AsNoTracking();
 
-            // Upcoming = still scheduled AND in the future. Everything else is history,
-            // including a "Scheduled" appointment whose time passed and nobody closed out.
-            // The second ordering key keeps paging stable when two rows share a time.
             query = scope == AppointmentScope.Upcoming
                 ? query.Where(a => a.Status == AppointmentStatus.Scheduled && a.AppointmentDateTime >= now)
                        .OrderBy(a => a.AppointmentDateTime).ThenBy(a => a.AppointmentId)
@@ -155,7 +167,6 @@ namespace ClinicManagementSystem.API.Services
 
             var totalCount = await query.CountAsync(ct);
 
-            // Project only the columns the card needs (no Include, no tracking).
             var rows = await query
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
@@ -177,21 +188,21 @@ namespace ClinicManagementSystem.API.Services
                 r.DoctorName,
                 r.Specialization,
                 r.ProfileImageUrl,
-                r.AppointmentDateTime, // FIX: clinic-local, sent without "Z"
+                r.AppointmentDateTime,
                 r.Status,
-                Appointment.IsCancellable(r.Status, r.AppointmentDateTime, now))).ToList();
+                CanCancel(r.Status, r.AppointmentDateTime, now))).ToList();
 
             return new AppointmentDtos.PagedResult<AppointmentListItemDto>(items, pageNumber, pageSize, totalCount);
         }
 
-        // FIX: nullable return type, because we do return null when nothing matches.
-        public async Task<AppointmentDetailsDto?> GetByIdAsync(int patientId, int appointmentId, CancellationToken ct)
+        public async Task<AppointmentDetailsDto?> GetByIdAsync(int appointmentId, CancellationToken ct)
         {
-            var now = ClinicNow(); // FIX: was UTC
+            var now = ClinicNow();
 
-            var row = await context.Appointments
+            // Someone else's appointment is not in VisibleAppointments(), so it simply isn't found.
+            var row = await VisibleAppointments()
                 .AsNoTracking()
-                .Where(a => a.AppointmentId == appointmentId && a.PatientId == patientId)
+                .Where(a => a.AppointmentId == appointmentId)
                 .Select(a => new
                 {
                     a.AppointmentId,
@@ -213,7 +224,6 @@ namespace ClinicManagementSystem.API.Services
 
             if (row is null) return null;
 
-            // Second small query instead of one giant join: simpler SQL, no row duplication.
             var prescriptions = new List<PrescriptionDto>();
             if (row.MedicalRecordId is int recordId)
             {
@@ -237,9 +247,9 @@ namespace ClinicManagementSystem.API.Services
                 row.DoctorName,
                 row.Specialization,
                 row.ProfileImageUrl,
-                row.AppointmentDateTime, // FIX: clinic-local, sent without "Z"
+                row.AppointmentDateTime,
                 row.Status,
-                Appointment.IsCancellable(row.Status, row.AppointmentDateTime, now),
+                CanCancel(row.Status, row.AppointmentDateTime, now),
                 row.VisitDescription,
                 row.Diagnosis,
                 row.AdditionalNotes,
@@ -247,32 +257,48 @@ namespace ClinicManagementSystem.API.Services
                 payment);
         }
 
-        public async Task<CancelOutcome> CancelAsync(int patientId, int appointmentId, CancellationToken ct)
+        public async Task<CancelOutcome> CancelAsync(int appointmentId, CancellationToken ct)
         {
-            // Tracked on purpose: we are about to modify this row.
-            var appointment = await context.Appointments
-          .Include(a => a.Patient).ThenInclude(p => p.Person)
-          .Include(a => a.Doctor).ThenInclude(d => d.Person)
-          .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId && a.PatientId == patientId, ct);
+            // Tracked on purpose (we modify it), but still scoped to what the caller may see.
+            var appointment = await VisibleAppointments()
+                .Include(a => a.Patient).ThenInclude(p => p.Person)
+                .Include(a => a.Doctor).ThenInclude(d => d.Person)
+                .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId, ct);
 
-            // Someone else's appointment looks exactly like a missing one (no id probing).
+            // Not yours looks exactly like not existing: no id probing.
             if (appointment is null) return CancelOutcome.NotFound;
 
-            if (!appointment.TryCancel(ClinicNow())) // FIX: was UTC
-                return CancelOutcome.NotEligible;
+            var now = ClinicNow();
+            bool cancelled;
+
+            if (IsStaff)
+            {
+                cancelled = appointment.Status == AppointmentStatus.Scheduled
+                            && appointment.AppointmentDateTime > now;
+                if (cancelled) appointment.Status = AppointmentStatus.Cancelled;
+            }
+            else
+            {
+                cancelled = appointment.TryCancel(now);   // patients: 24-hour rule
+            }
+
+            if (!cancelled) return CancelOutcome.NotEligible;
+
+            // Notify everyone except whoever cancelled. Id 0 matches no one, so both parties hear about an admin cancel.
+            var cancelledByPersonId =
+                currentUser.IsAdmin ? 0
+                : currentUser.DoctorId is not null ? appointment.Doctor.PersonId
+                : appointment.Patient.PersonId;
 
             notifications.AddAppointmentCancelled(
-       new AppointmentNotificationContext(
-           appointment,
-           appointment.Patient.PersonId, appointment.Patient.Person.Name,
-           appointment.Doctor.PersonId, appointment.Doctor.Person.Name),
-       cancelledByPersonId: appointment.Patient.PersonId);
-
+                new AppointmentNotificationContext(
+                    appointment,
+                    appointment.Patient.PersonId, appointment.Patient.Person.Name,
+                    appointment.Doctor.PersonId, appointment.Doctor.Person.Name),
+                cancelledByPersonId);
 
             await context.SaveChangesAsync(ct);
             return CancelOutcome.Cancelled;
         }
-
-        // AsUtc() is deleted: stamping clinic-local times as UTC was the bug.
     }
 }

@@ -1,10 +1,13 @@
-﻿using ClinicManagementSystem.API.Interfaces;
+﻿using ClinicManagementSystem.API.Auth;
+using ClinicManagementSystem.API.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using static ClinicManagementSystem.API.DTOs.DoctorAvailabilityDtos;
 
 [ApiController]
 [Route("api/doctors/{doctorId:int}")]
+[Authorize(Policy = Policies.DoctorSelfOrAdmin)]
 public class DoctorAvailabilityController(IDoctorAvailabilityService service) : ControllerBase
 {
     [HttpGet("schedule")]

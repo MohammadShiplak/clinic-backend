@@ -70,10 +70,7 @@ public record SlotDto(DateTime Start,DateTime End);
         {
 
             [Range(1, int.MaxValue)] public int DoctorId { get; init; }
-            
             public DateTime AppointmentDateTime { get; init; }
-
-
 
 
         }

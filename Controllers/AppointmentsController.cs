@@ -28,7 +28,7 @@ public class AppointmentsController(IAppointmentService service) : ControllerBas
     [HttpPost]
     public async Task<ActionResult<AppointmentDto>> Book(CreateAppointmentRequest request, CancellationToken ct)
     {
-        var result = await service.BookAsync(PatientId, request, ct);
+        var result = await service.BookAsync( request, ct);
         return result.IsSuccess
             ? Created($"/api/appointments/{result.Value!.AppointmentId}", result.Value)
             : ToProblem(result.Error, result.Message);
@@ -47,20 +47,20 @@ public class AppointmentsController(IAppointmentService service) : ControllerBas
         if (pageNumber < 1 || pageSize < 1 || pageSize > MaxPageSize)
             return BadRequest($"pageNumber must be at least 1 and pageSize between 1 and {MaxPageSize}.");
 
-        return Ok(await service.GetAppointmentsAsync(PatientId, scope, pageNumber, pageSize, ct));
+        return Ok(await service.GetAppointmentsAsync( scope, pageNumber, pageSize, ct));
     }
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<AppointmentDetailsDto>> GetAppointment(int id, CancellationToken ct)
     {
-        var dto = await service.GetByIdAsync(PatientId, id, ct);
+        var dto = await service.GetByIdAsync( id, ct);
         return dto is null ? NotFound() : Ok(dto);
     }
 
     [HttpPost("{id:int}/cancel")]
     public async Task<IActionResult> Cancel(int id, CancellationToken ct)
     {
-        return await service.CancelAsync(PatientId, id, ct) switch
+        return await service.CancelAsync( id, ct) switch
         {
             CancelOutcome.Cancelled => NoContent(),
             CancelOutcome.NotFound => NotFound(),

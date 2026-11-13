@@ -42,7 +42,7 @@ public class AuthService(
                 .FirstOrDefaultAsync(ct);
         }
 
-        var token = tokens.Create(account, patientId);
+        var token = await tokens.Create(account);
 
         return ServiceResult<LoginResultDto>.Ok(new LoginResultDto(
             token.Value,

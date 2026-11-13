@@ -1,4 +1,5 @@
 ﻿// Services/PatientService.cs
+using ClinicManagementSystem.API.Auth;
 using ClinicManagementSystem.API.Common;
 using ClinicManagementSystem.API.DTOs;
 using ClinicManagementSystem.API.Entities;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ClinicManagementSystem.API.Services;
 
-public class PatientService(ClinicDbContext context,TimeProvider clock) : IPatientService
+public class PatientService(ClinicDbContext context,TimeProvider clock,ICurrentUser current) : IPatientService
 {
     private const int MaxPageSize = 50;
 
@@ -17,7 +18,7 @@ public class PatientService(ClinicDbContext context,TimeProvider clock) : IPatie
         pageNumber = Math.Max(pageNumber, 1);
         pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
 
-        var query = context.Patients.AsNoTracking();
+        var query = VisiblePatients();
 
         if (!includeInactive)
             query = query.Where(p => p.IsActive);
@@ -159,6 +160,12 @@ public class PatientService(ClinicDbContext context,TimeProvider clock) : IPatie
             .AsNoTracking()
             .Where(a => a.PatientId == patientId);
 
+
+        if (!current.IsAdmin && current.DoctorId is { } doctorId)
+            query = query.Where(a => a.DoctorId == doctorId);
+
+
+
         if (q.Status is { } status)
             query = query.Where(a => a.Status == status);
 
@@ -212,5 +219,15 @@ public class PatientService(ClinicDbContext context,TimeProvider clock) : IPatie
         await SetActiveAsync(patientId, false, ct);
         return DeactivatePatientOutcome.Deactivated;
     }
-  
+    private IQueryable<Patient> VisiblePatients()
+    {
+        if (current.IsAdmin) return context.Patients;
+
+        if (current.DoctorId is { } doctorId)
+            return context.Patients.Where(p => p.Appointments.Any(a => a.DoctorId == doctorId));
+
+        return context.Patients.Where(_ => false);
+    }
+
+
 }

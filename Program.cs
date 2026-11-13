@@ -1,4 +1,5 @@
 using ClinicManagementSystem.API;
+using ClinicManagementSystem.API.Auth;
 using ClinicManagementSystem.API.Common;
 using ClinicManagementSystem.API.Entities;
 using ClinicManagementSystem.API.Interfaces;
@@ -81,10 +82,22 @@ builder.Services.AddAuthorizationBuilder()
         .RequireAuthenticatedUser()
         .Build());
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddSingleton<IAuthorizationHandler, DoctorSelfOrAdminHandler>();   // Part C
+
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+
+    options.AddPolicy(Policies.AdminOnly, p => p.RequireRole(Roles.Admin));
+    options.AddPolicy(Policies.StaffOnly, p => p.RequireRole(Roles.Admin, Roles.Doctor));
+    options.AddPolicy(Policies.PatientOnly, p => p.RequireRole(Roles.Patient));
+    options.AddPolicy(Policies.DoctorSelfOrAdmin, p => p.AddRequirements(new DoctorSelfOrAdminRequirement()));
+});
 
 
-
-builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
 
 
