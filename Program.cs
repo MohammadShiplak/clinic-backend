@@ -2,6 +2,7 @@ using ClinicManagementSystem.API;
 using ClinicManagementSystem.API.Auth;
 using ClinicManagementSystem.API.Common;
 using ClinicManagementSystem.API.Entities;
+using ClinicManagementSystem.API.Extensions;
 using ClinicManagementSystem.API.Interfaces;
 using ClinicManagementSystem.API.Options;
 using ClinicManagementSystem.API.Services;
@@ -129,6 +130,7 @@ builder.Services.AddHostedService<NotificationEmailWorker>();
 builder.Services.AddScoped<IPatientService, PatientService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddClinicRateLimiting(builder.Configuration);
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
@@ -174,6 +176,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();          // serves wwwroot, before CORS/auth
 app.UseCors("Frontend");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

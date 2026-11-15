@@ -1,13 +1,16 @@
 ﻿using ClinicManagementSystem.API.Common;
 using ClinicManagementSystem.API.DTOs;
+using ClinicManagementSystem.API.Extensions;
 using ClinicManagementSystem.API.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace ClinicManagementSystem.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
 public class AuthController(IAuthService auth) : ControllerBase
 {
     [HttpPost("register")]
