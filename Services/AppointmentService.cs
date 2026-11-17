@@ -16,7 +16,8 @@ namespace ClinicManagementSystem.API.Services
         IOptions<AppointmentSettings> options,
         TimeProvider timeProvider,
         INotificationService notifications,
-        ICurrentUser currentUser) : IAppointmentService
+        ICurrentUser currentUser,
+        ILogger<AppointmentService> logger) : IAppointmentService
     {
         private readonly AppointmentSettings _s = options.Value;
         private readonly TimeZoneInfo _clinicTz = TimeZoneInfo.FindSystemTimeZoneById(options.Value.TimeZoneId);
@@ -27,8 +28,13 @@ namespace ClinicManagementSystem.API.Services
 
         private bool IsStaff => currentUser.IsAdmin || currentUser.DoctorId is not null;
 
+        // Role label for logs. Only the role: never a name, email or phone number.
+        private string Actor =>
+            currentUser.IsAdmin ? "admin"
+            : currentUser.DoctorId is not null ? "doctor"
+            : "patient";
+
         // ONE place that defines which appointments the caller may see.
-        // Every read and write below starts from this query.
         private IQueryable<Appointment> VisibleAppointments()
         {
             var query = context.Appointments.AsQueryable();
@@ -52,7 +58,10 @@ namespace ClinicManagementSystem.API.Services
         {
             // Identity from the TOKEN. A body-supplied patient id would be mass assignment.
             if (currentUser.PatientId is not { } patientId)
+            {
+                logger.LogWarning("Booking refused: caller with role {Actor} is not a patient", Actor);
                 return ServiceResult<AppointmentDto>.Fail(ServiceError.Forbidden, "Only patients can book appointments.");
+            }
 
             var requested = DateTime.SpecifyKind(request.AppointmentDateTime, DateTimeKind.Unspecified);
             var date = DateOnly.FromDateTime(requested);
@@ -104,9 +113,17 @@ namespace ClinicManagementSystem.API.Services
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {
+                logger.LogWarning(
+                    "Booking conflict: doctor {DoctorId} slot {Slot} was already taken (patient {PatientId})",
+                    request.DoctorId, requested, patientId);
+
                 return ServiceResult<AppointmentDto>.Fail(
                     ServiceError.Conflict, "This slot was just booked by someone else. Please choose another time.");
             }
+
+            logger.LogInformation(
+                "Appointment {AppointmentId} booked: doctor {DoctorId}, patient {PatientId}, at {Slot}",
+                appointment.AppointmentId, appointment.DoctorId, appointment.PatientId, requested);
 
             return ServiceResult<AppointmentDto>.Ok(new AppointmentDto(
                 appointment.AppointmentId,
@@ -199,7 +216,6 @@ namespace ClinicManagementSystem.API.Services
         {
             var now = ClinicNow();
 
-            // Someone else's appointment is not in VisibleAppointments(), so it simply isn't found.
             var row = await VisibleAppointments()
                 .AsNoTracking()
                 .Where(a => a.AppointmentId == appointmentId)
@@ -259,14 +275,19 @@ namespace ClinicManagementSystem.API.Services
 
         public async Task<CancelOutcome> CancelAsync(int appointmentId, CancellationToken ct)
         {
-            // Tracked on purpose (we modify it), but still scoped to what the caller may see.
             var appointment = await VisibleAppointments()
                 .Include(a => a.Patient).ThenInclude(p => p.Person)
                 .Include(a => a.Doctor).ThenInclude(d => d.Person)
                 .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId, ct);
 
             // Not yours looks exactly like not existing: no id probing.
-            if (appointment is null) return CancelOutcome.NotFound;
+            if (appointment is null)
+            {
+                logger.LogInformation(
+                    "Cancel failed: appointment {AppointmentId} not found or not visible to {Actor}",
+                    appointmentId, Actor);
+                return CancelOutcome.NotFound;
+            }
 
             var now = ClinicNow();
             bool cancelled;
@@ -282,9 +303,15 @@ namespace ClinicManagementSystem.API.Services
                 cancelled = appointment.TryCancel(now);   // patients: 24-hour rule
             }
 
-            if (!cancelled) return CancelOutcome.NotEligible;
+            if (!cancelled)
+            {
+                logger.LogInformation(
+                    "Cancel rejected for appointment {AppointmentId}: not eligible (status {Status}, actor {Actor})",
+                    appointmentId, appointment.Status, Actor);
+                return CancelOutcome.NotEligible;
+            }
 
-            // Notify everyone except whoever cancelled. Id 0 matches no one, so both parties hear about an admin cancel.
+            // Id 0 matches no one, so both parties hear about an admin cancel.
             var cancelledByPersonId =
                 currentUser.IsAdmin ? 0
                 : currentUser.DoctorId is not null ? appointment.Doctor.PersonId
@@ -298,6 +325,12 @@ namespace ClinicManagementSystem.API.Services
                 cancelledByPersonId);
 
             await context.SaveChangesAsync(ct);
+
+            // Logged AFTER the save succeeded, so the log never claims something that didn't happen.
+            logger.LogInformation(
+                "Appointment {AppointmentId} cancelled by {Actor} (doctor {DoctorId}, patient {PatientId})",
+                appointmentId, Actor, appointment.DoctorId, appointment.PatientId);
+
             return CancelOutcome.Cancelled;
         }
     }
