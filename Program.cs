@@ -2,6 +2,7 @@ using ClinicManagementSystem.API;
 using ClinicManagementSystem.API.Auth;
 using ClinicManagementSystem.API.Common;
 using ClinicManagementSystem.API.Entities;
+using ClinicManagementSystem.API.Extensions;
 using ClinicManagementSystem.API.Interfaces;
 using ClinicManagementSystem.API.Options;
 using ClinicManagementSystem.API.Services;
@@ -104,38 +105,6 @@ try
         options.AddPolicy(Policies.DoctorSelfOrAdmin, p => p.AddRequirements(new DoctorSelfOrAdminRequirement()));
     });
 
-    builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-
-    builder.Services.AddControllers()
-        .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(
-            new System.Text.Json.Serialization.JsonStringEnumConverter()));
-
-    // ---- Error handling ----
-    builder.Services.AddProblemDetails();
-    builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-
-    builder.Services.AddSingleton(TimeProvider.System);
-    builder.Services.AddSingleton<IPasswordService, PasswordService>();
-
-    if (string.Equals(builder.Configuration["Email:Provider"], "Smtp", StringComparison.OrdinalIgnoreCase))
-        builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
-    else
-        builder.Services.AddSingleton<IEmailSender, LoggingEmailSender>();
-
-    builder.Services.AddScoped<IDoctorService, DoctorService>();
-    builder.Services.AddScoped<IAppointmentService, AppointmentService>();
-    builder.Services.AddScoped<IDoctorAvailabilityService, DoctorAvailabilityService>();
-    builder.Services.AddScoped<INotificationService, NotificationService>();
-    builder.Services.AddScoped<INotificationInboxService, NotificationInboxService>();
-    builder.Services.AddScoped<IAppointmentReminderService, AppointmentReminderService>();
-    builder.Services.AddHostedService<AppointmentReminderWorker>();
-    builder.Services.AddScoped<INotificationEmailDispatcher, NotificationEmailDispatcher>();
-    builder.Services.AddHostedService<NotificationEmailWorker>();
-    builder.Services.AddScoped<IPatientService, PatientService>();
-    builder.Services.AddScoped<IDashboardService, DashboardService>();
-    builder.Services.AddScoped<IAuthService, AuthService>();
-
-    builder.Services.AddCors(options =>
     {
         options.AddPolicy("Frontend", policy =>
             policy.WithOrigins("http://localhost:5173")
@@ -192,8 +161,4 @@ try
 catch (Exception ex) when (ex is not HostAbortedException)   // EF tooling aborts the host on purpose
 {
     Log.Fatal(ex, "Application terminated unexpectedly");
-}
-finally
-{
-    Log.CloseAndFlush();   // flush buffered file writes before the process exits
 }

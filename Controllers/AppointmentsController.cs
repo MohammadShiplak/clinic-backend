@@ -1,8 +1,10 @@
 ﻿using ClinicManagementSystem.API.Common;
 using ClinicManagementSystem.API.DTOs;
+using ClinicManagementSystem.API.Extensions;
 using ClinicManagementSystem.API.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using static ClinicManagementSystem.API.DTOs.AppointmentDtos;
 
 namespace ClinicManagementSystem.API.Controllers;
@@ -26,6 +28,7 @@ public class AppointmentsController(IAppointmentService service) : ControllerBas
     }
 
     [HttpPost]
+    [EnableRateLimiting(RateLimitingExtensions.BookingPolicy)]
     public async Task<ActionResult<AppointmentDto>> Book(CreateAppointmentRequest request, CancellationToken ct)
     {
         var result = await service.BookAsync( request, ct);
